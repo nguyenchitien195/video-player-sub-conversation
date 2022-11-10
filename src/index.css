@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .clip-hexagon {
+    clip-path: polygon(0 25%, 50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%);
+  }
+  .clip-polygon_progress {
+    clip-path: polygon(50% -10%, 110% -10%, 110% 110%, -10% 110%, -10% 50%, 50% 50%);
+  }
+  .scrollbar-small::-webkit-scrollbar {
+    width: 6px;
+    background: #777;
+    border-radius: 3px;
+  }
+  .scrollbar-small::-webkit-scrollbar-thumb {
+    background: #ffcc21;
+    border-radius: 3px;
+  }
+}
