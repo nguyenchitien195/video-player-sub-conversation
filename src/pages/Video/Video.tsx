@@ -151,15 +151,20 @@ export default function Video() {
           onStart={() => console.log('on start')}
           onDuration={duration => console.log('duration - ', duration)}
           onSeek={second => console.log('seek', second)}
-          // playing={true}
+          playing={true}
           // muted
-          // controls
+          controls
           config={{
             file: {
               attributes: {
                 controlList: 'nofullscreen',
               },
             },
+            youtube: {
+              playerVars: {
+
+              }
+            }
           }}
         />
         {!!sub.text && (
