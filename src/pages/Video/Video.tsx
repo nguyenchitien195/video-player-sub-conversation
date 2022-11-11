@@ -9,6 +9,7 @@ import { formatDuration } from '~/utils/format';
 import { searchStore } from '~/zustand/searchStore';
 import Popup from 'reactjs-popup';
 import clsx from 'clsx';
+import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface TypeSub {
   index: number;
@@ -26,9 +27,10 @@ const appearTime = 5;
 
 export default function Video() {
   const videoRef = useRef<ReactPlayer>(null);
+  const conversationRef = useRef<HTMLDivElement>(null);
   const { id = '1' } = useParams();
   const [sub, setSub] = useState<TypeSub>(defaultSub);
-  // const [currentSecond, setCurrentSecond] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const { data: video } = useQuery(
     [`video-${id}`, id],
     () => getVideoById(parseInt(id)),
@@ -50,11 +52,11 @@ export default function Video() {
       c => currentSecond >= c.time
     );
     const subFind = newConversations[subFindIndex];
-    console.log({
-      currentSecond,
-      subFind,
-      sub,
-    });
+    // console.log({
+    //   currentSecond,
+    //   subFind,
+    //   sub,
+    // });
     if (subFind && currentSecond < subFind.time + appearTime) {
       const text = subFind.text;
       if (typeof text === 'string') {
@@ -64,6 +66,17 @@ export default function Video() {
             time: subFind.time,
             text,
           });
+          if (conversationRef.current) {
+            const conversationItem = conversationRef.current.childNodes[
+              conversationSorting.length - subFindIndex - 1
+            ] as HTMLElement;
+            scrollIntoView(conversationItem, {
+              behavior: 'smooth',
+              // scrollMode: 'if-needed',
+              block: 'center',
+              boundary: conversationRef.current,
+            });
+          }
         }
       } else {
         const subText = text.map(t => {
@@ -78,6 +91,17 @@ export default function Video() {
             time: subFind.time,
             text: subText.join(' '),
           });
+          if (conversationRef.current) {
+            const conversationItem = conversationRef.current.childNodes[
+              conversationSorting.length - subFindIndex - 1
+            ] as HTMLElement;
+            scrollIntoView(conversationItem, {
+              behavior: 'smooth',
+              // scrollMode: 'if-needed',
+              block: 'center',
+              boundary: conversationRef.current,
+            });
+          }
         }
       }
     } else if (currentSecond > sub.time + appearTime && sub.text) {
@@ -144,14 +168,19 @@ export default function Video() {
           // light={true}
           onReady={() => {
             console.log('on ready');
+            setPlaying(true);
           }}
           onProgress={handleOnProgress}
-          onPause={() => console.log('pause')}
+          onBuffer={() => console.log('on buffer')}
+          onError={() => console.log('on error')}
+          onEnded={() => console.log('on ended')}
+          stopOnUnmount
+          onPause={() => console.log('on pause')}
           onPlay={() => console.log('on play')}
           onStart={() => console.log('on start')}
           onDuration={duration => console.log('duration - ', duration)}
-          onSeek={second => console.log('seek', second)}
-          playing={true}
+          onSeek={second => console.log('on seek', second)}
+          playing={playing}
           // muted
           controls
           config={{
@@ -162,9 +191,21 @@ export default function Video() {
             },
             youtube: {
               playerVars: {
-
-              }
-            }
+                autoplay: 1,
+                playsinline: 1,
+                controls: 1,
+                disablekb: 1,
+                modestbranding: 0,
+                rel: 0,
+              },
+              onUnstarted: () => {
+                console.log('auto play fail');
+                if (videoRef.current) {
+                  setPlaying(true);
+                  // videoRef.current.seekTo(0);
+                }
+              },
+            },
           }}
         />
         {!!sub.text && (
@@ -177,7 +218,11 @@ export default function Video() {
       </div>
       <p className="text-2xl py-4">{video?.title}</p>
 
-      <div className="max-h-96 flex flex-col gap-2 overflow-y-auto px-2 py-3 bg-gray-200">
+      <div
+        id="conversation"
+        ref={conversationRef}
+        className="max-h-96 flex flex-col gap-2 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thumb-gray-400 px-2 py-3 bg-gray-200"
+      >
         {conversationSorting.map((c, i) => (
           <div
             key={i}

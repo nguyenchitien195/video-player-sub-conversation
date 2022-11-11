@@ -33,5 +33,6 @@ module.exports = {
       },
     },
   },
+  variants: { scrollbar: ['rounded'] },
   plugins: [require('tailwind-scrollbar')],
 };
