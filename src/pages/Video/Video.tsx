@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, MouseEvent } from 'react';
 import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom';
 import Container from '~/components/Container';
@@ -25,12 +25,18 @@ const defaultSub: TypeSub = {
 
 const appearTime = 5;
 
+let isEventFullscreenChange = false;
+
+const AUTO_PLAY = true;
+
 export default function Video() {
   const videoRef = useRef<ReactPlayer>(null);
   const conversationRef = useRef<HTMLDivElement>(null);
   const { id = '1' } = useParams();
   const [sub, setSub] = useState<TypeSub>(defaultSub);
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(AUTO_PLAY);
+  const [playedSeconds, setPlayedSeconds] = useState(0);
+  const [playedPercentage, setPlayedPercentage] = useState(0);
   const { data: video } = useQuery(
     [`video-${id}`, id],
     () => getVideoById(parseInt(id)),
@@ -41,6 +47,8 @@ export default function Video() {
   const conversationSorting =
     video?.conversations.sort((a, b) => a.time - b.time) || [];
   const search = searchStore();
+  const [fullscreen, setFullscreen] = useState(false);
+  const overlayClickRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     search.setTag('All');
@@ -119,7 +127,9 @@ export default function Video() {
     loadedSeconds: number;
   }) => {
     console.log('----- on progress');
+    setPlayedPercentage(state.played * 100);
     const current = Math.floor(state.playedSeconds);
+    setPlayedSeconds(current);
     handleSub(current);
   };
 
@@ -157,64 +167,174 @@ export default function Video() {
     }
   };
 
+  const handleFullscreenChanged = () => {
+    const fullscreenElement = document.fullscreenElement;
+    setFullscreen(!!fullscreenElement);
+  };
+
+  useEffect(() => {
+    if (isEventFullscreenChange === false) {
+      isEventFullscreenChange = true;
+      addEventListener('fullscreenchange', handleFullscreenChanged);
+    }
+  }, [document]);
+
+  const handleFullScreen = () => {
+    const documentElement = document.documentElement;
+    const fullscreenElement = document.fullscreenElement;
+    if (fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      documentElement.requestFullscreen();
+    }
+  };
+
+  const handlePlaying = () => {
+    setPlaying(old => !old);
+  };
+
+  const handleClickOverlay = (event: MouseEvent<HTMLDivElement>) => {
+    switch (event.detail) {
+      case 1: {
+        overlayClickRef.current = setTimeout(() => {
+          setPlaying(old => !old);
+        }, 250);
+        break;
+      }
+      case 2: {
+        clearTimeout(overlayClickRef.current);
+        const fullscreenElement = document.fullscreenElement;
+        if (fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          document.documentElement.requestFullscreen();
+        }
+        break;
+      }
+    }
+  };
+
   return (
     <Container className="py-8">
-      <div className="aspect-video relative">
-        <ReactPlayer
-          ref={videoRef}
-          url={video?.mediaUrl}
-          width="100%"
-          height="100%"
-          // light={true}
-          onReady={() => {
-            console.log('on ready');
-            setPlaying(true);
-          }}
-          onProgress={handleOnProgress}
-          onBuffer={() => console.log('on buffer')}
-          onError={() => console.log('on error')}
-          onEnded={() => console.log('on ended')}
-          stopOnUnmount
-          onPause={() => console.log('on pause')}
-          onPlay={() => console.log('on play')}
-          onStart={() => console.log('on start')}
-          onDuration={duration => console.log('duration - ', duration)}
-          onSeek={second => console.log('on seek', second)}
-          playing={playing}
-          // muted
-          controls
-          config={{
-            file: {
-              attributes: {
-                controlList: 'nofullscreen',
+      <div
+        className={clsx('group cursor-pointer', {
+          'fixed top-0 left-0 w-full h-full z-50 bg-black grid place-items-center':
+            fullscreen,
+        })}
+        onClick={handleClickOverlay}
+      >
+        <div className={clsx('aspect-video relative w-full')}>
+          <ReactPlayer
+            ref={videoRef}
+            url={video?.mediaUrl}
+            width="100%"
+            height="100%"
+            // light={true}
+            onReady={() => {
+              console.log('on ready');
+              if (AUTO_PLAY) {
+                setPlaying(() => true);
+              }
+            }}
+            onProgress={handleOnProgress}
+            onBuffer={() => console.log('on buffer')}
+            onError={error => console.log('on error', error)}
+            onEnded={() => setPlaying(false)}
+            stopOnUnmount
+            onPause={() => {
+              console.log('on pause');
+              setPlaying(() => false);
+            }}
+            onPlay={() => {
+              setPlaying(() => true);
+            }}
+            onStart={() => console.log('on start')}
+            onDuration={duration => console.log('duration - ', duration)}
+            onSeek={second => console.log('on seek', second)}
+            playing={playing}
+            // controls
+            // muted
+            config={{
+              file: {
+                attributes: {
+                  controlsList: 'nofullscreen',
+                },
               },
-            },
-            youtube: {
-              playerVars: {
-                autoplay: 1,
-                playsinline: 1,
-                controls: 1,
-                disablekb: 1,
-                modestbranding: 0,
-                rel: 0,
+              youtube: {
+                playerVars: {
+                  autoplay: AUTO_PLAY ? 1 : 0,
+                  rel: 0,
+                  playsinline: 1,
+                  controls: 0,
+                  modestbranding: 1,
+                },
+                onUnstarted: () => {
+                  console.log('auto play fail');
+                  if (videoRef.current) {
+                    // setPlaying(true);
+                    // videoRef.current.seekTo(0);
+                  }
+                },
               },
-              onUnstarted: () => {
-                console.log('auto play fail');
-                if (videoRef.current) {
-                  setPlaying(true);
-                  // videoRef.current.seekTo(0);
-                }
-              },
-            },
-          }}
-        />
-        {!!sub.text && (
-          <div className="w-full grid place-items-center">
-            <p className="bg-gray-500 text-white absolute bottom-0 mb-12 px-4 py-1 mx-auto z-10">
-              {sub.text}
-            </p>
+            }}
+          />
+          {/* Overlay */}
+          <div className="w-full h-full absolute top-0 left-0 cursor-pointer"></div>
+          <div
+            className={clsx(
+              'bottom-0 w-full',
+              { fixed: fullscreen },
+              { absolute: !fullscreen }
+            )}
+          >
+            {!!sub.text && (
+              <div className="w-full grid place-items-center">
+                <p className="bg-gray-500/50 rounded-[4px] text-white mb-4 px-4 py-1 mx-auto z-10">
+                  {sub.text}
+                </p>
+              </div>
+            )}
+            <div
+              className={clsx(
+                'h-12 hidden group-hover:block w-full transition-all bg-black px-3',
+                { '!block': playing === false }
+              )}
+            >
+              <div className="w-full bg-gray-200 h-1 dark:bg-gray-700">
+                <div
+                  className="bg-blue-600 h-1 transition-all"
+                  style={{ width: `${playedPercentage}%` }}
+                ></div>
+              </div>
+              <div className="flex justify-between items-center w-full h-full text-white">
+                <div className="flex items-center gap-x-4">
+                  <span
+                    className="text-2xl cursor-pointer"
+                    onClick={handlePlaying}
+                  >
+                    {playing ? (
+                      <i className="bx bx-pause"></i>
+                    ) : (
+                      <i className="bx bx-play"></i>
+                    )}
+                  </span>
+                  <p className="text-sm mb-1">
+                    {formatDuration(playedSeconds)}
+                  </p>
+                </div>
+                <div>
+                  <span onClick={handleFullScreen}>
+                    {fullscreen ? (
+                      <i className="bx bx-exit-fullscreen text-2xl cursor-pointer"></i>
+                    ) : (
+                      <i className="bx bx-fullscreen text-2xl mr-2 cursor-pointer"></i>
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
       <p className="text-2xl py-4">{video?.title}</p>
 

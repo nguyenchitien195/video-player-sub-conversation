@@ -12,7 +12,7 @@ import { searchStore } from '~/zustand/searchStore';
 export default function Home() {
   const { data: listTagRes } = useQuery(['tags'], () => getTags());
   const search = searchStore();
-  const { data: listVideoRes } = useQuery(
+  const { data: listVideoRes, isLoading } = useQuery(
     ['videos', search.tag, search.keyword],
     () =>
       getVideos({
@@ -62,6 +62,11 @@ export default function Home() {
           </Link>
         ))}
       </div>
+      {!isLoading && videos.length === 0 && (
+        <p className="font-semibold text-2xl">
+          There are no records match the filter.
+        </p>
+      )}
       {/* <div className="grid place-items-center mb-6">
         <Pagination
           currentPage={0}

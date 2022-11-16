@@ -1,4 +1,5 @@
 import { TypeVideo } from './video/type';
+import TestVideo from '~/assets/test-video.mp4';
 
 export const tagData: string[] = [
   'cartoon',
@@ -76,6 +77,8 @@ export const videoData: TypeVideo[] = [
       },
     ],
     mediaUrl: 'https://www.youtube.com/watch?v=ofzlco57gP0&wmode=opaque&rel=0',
+    // mediaUrl: TestVideo,
+    // mediaUrl: '/assets/test-video.mp4',
     thumbUrl: 'https://i3.ytimg.com/vi/ofzlco57gP0/maxresdefault.jpg',
     description: 'Naruto trailer description',
     title:
