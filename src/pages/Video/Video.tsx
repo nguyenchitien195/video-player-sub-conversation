@@ -10,6 +10,7 @@ import { searchStore } from '~/zustand/searchStore';
 import Popup from 'reactjs-popup';
 import clsx from 'clsx';
 import scrollIntoView from 'scroll-into-view-if-needed';
+import ProgressBar from './ProgressBar';
 
 interface TypeSub {
   index: number;
@@ -37,6 +38,7 @@ export default function Video() {
   const [playing, setPlaying] = useState(AUTO_PLAY);
   const [playedSeconds, setPlayedSeconds] = useState(0);
   const [playedPercentage, setPlayedPercentage] = useState(0);
+  const [duration, setDuration] = useState(0);
   const { data: video } = useQuery(
     [`video-${id}`, id],
     () => getVideoById(parseInt(id)),
@@ -169,6 +171,11 @@ export default function Video() {
 
   const handleFullscreenChanged = () => {
     const fullscreenElement = document.fullscreenElement;
+    if (fullscreenElement) {
+      screen.orientation.lock('landscape');
+    } else {
+      screen.orientation.unlock();
+    }
     setFullscreen(!!fullscreenElement);
   };
 
@@ -179,17 +186,24 @@ export default function Video() {
     }
   }, [document]);
 
-  const handleFullScreen = () => {
+  const handleFullScreen = (event: MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
     const documentElement = document.documentElement;
     const fullscreenElement = document.fullscreenElement;
     if (fullscreenElement) {
       document.exitFullscreen();
+      // screen.orientation.lock('landscape');
     } else {
       documentElement.requestFullscreen();
+      // screen.orientation.lock('landscape');
+      // window.screen.orientation.lock('landscape-primary');
+      // window.screen.orientation.lock('landscape-secondary');
+      // .catch(err => alert('This device not support landscape'));
     }
   };
 
-  const handlePlaying = () => {
+  const handlePlaying = (event: MouseEvent<HTMLSpanElement>) => {
+    event.stopPropagation();
     setPlaying(old => !old);
   };
 
@@ -214,6 +228,15 @@ export default function Video() {
     }
   };
 
+  const handleSeekVideo = (pointSeconds: number) => {
+    if (videoRef.current) {
+      if (duration) {
+        setPlayedPercentage((pointSeconds * 100) / duration);
+      }
+      videoRef.current.seekTo(pointSeconds);
+    }
+  };
+
   return (
     <Container className="py-8">
       <div
@@ -230,8 +253,9 @@ export default function Video() {
             width="100%"
             height="100%"
             // light={true}
-            onReady={() => {
-              console.log('on ready');
+            onReady={(player: ReactPlayer) => {
+              setDuration(player.getDuration());
+              console.log('on ready', player.getDuration());
               if (AUTO_PLAY) {
                 setPlaying(() => true);
               }
@@ -266,8 +290,13 @@ export default function Video() {
                   rel: 0,
                   playsinline: 1,
                   controls: 0,
+                  showinfo: 0,
+                  ecver: 2,
+                  iv_load_policy: 3,
                   modestbranding: 1,
+                  origin: '',
                 },
+                embedOptions: {},
                 onUnstarted: () => {
                   console.log('auto play fail');
                   if (videoRef.current) {
@@ -296,20 +325,19 @@ export default function Video() {
             )}
             <div
               className={clsx(
-                'h-12 hidden group-hover:block w-full transition-all bg-black px-3',
+                'h-12 hidden relative group-hover:block w-full transition-all bg-black/70',
                 { '!block': playing === false }
               )}
             >
-              <div className="w-full bg-gray-200 h-1 dark:bg-gray-700">
-                <div
-                  className="bg-blue-600 h-1 transition-all"
-                  style={{ width: `${playedPercentage}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between items-center w-full h-full text-white">
-                <div className="flex items-center gap-x-4">
-                  <span
-                    className="text-2xl cursor-pointer"
+              <ProgressBar
+                playedPercentage={playedPercentage}
+                duration={duration}
+                handleSeekVideo={handleSeekVideo}
+              />
+              <div className="flex justify-between cursor-auto select-none items-center w-full h-full text-white">
+                <div className="flex h-full items-center">
+                  <div
+                    className="text-2xl h-full px-2 cursor-pointer flex items-center"
                     onClick={handlePlaying}
                   >
                     {playing ? (
@@ -317,19 +345,19 @@ export default function Video() {
                     ) : (
                       <i className="bx bx-play"></i>
                     )}
-                  </span>
-                  <p className="text-sm mb-1">
-                    {formatDuration(playedSeconds)}
+                  </div>
+                  <p className="text-sm">
+                    {`${formatDuration(playedSeconds)} / ${formatDuration(
+                      duration
+                    )}`}
                   </p>
                 </div>
-                <div>
-                  <span onClick={handleFullScreen}>
-                    {fullscreen ? (
-                      <i className="bx bx-exit-fullscreen text-2xl cursor-pointer"></i>
-                    ) : (
-                      <i className="bx bx-fullscreen text-2xl mr-2 cursor-pointer"></i>
-                    )}
-                  </span>
+                <div className="h-full flex items-center px-2" onClick={handleFullScreen}>
+                  {fullscreen ? (
+                    <i className="bx bx-exit-fullscreen text-2xl cursor-pointer"></i>
+                  ) : (
+                    <i className="bx bx-fullscreen text-2xl cursor-pointer"></i>
+                  )}
                 </div>
               </div>
             </div>

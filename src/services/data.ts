@@ -7,6 +7,8 @@ export const tagData: string[] = [
   'trailer',
   'movie',
   'kung fu',
+  'nature',
+  '4k',
 ];
 
 export const videoData: TypeVideo[] = [
@@ -76,7 +78,8 @@ export const videoData: TypeVideo[] = [
         time: 64,
       },
     ],
-    mediaUrl: 'https://www.youtube.com/watch?v=ofzlco57gP0&wmode=opaque&rel=0',
+    mediaUrl: 'https://www.youtube.com/watch?v=ofzlco57gP0',
+    // mediaUrl: 'https://www.youtube.com##.ytp-bezel-text-hide/watch?v=ofzlco57gP0',
     // mediaUrl: TestVideo,
     // mediaUrl: '/assets/test-video.mp4',
     thumbUrl: 'https://i3.ytimg.com/vi/ofzlco57gP0/maxresdefault.jpg',
@@ -103,5 +106,18 @@ export const videoData: TypeVideo[] = [
     thumbUrl: 'https://i3.ytimg.com/vi/t0_qPFHEm-g/maxresdefault.jpg',
     description: 'Naruto trailer description',
     title: 'NARUTO: The Movie "New Trailer" (2022) Live Action "Concept"',
+  },
+  {
+    // 2:13
+    id: 4,
+    tags: ['nature', '4k'],
+    conversations: [],
+    // mediaUrl:
+    //   'https://www.youtube.com/watch?v=lx9qeRLUYs8&ab_channel=SoulandFuel',
+    mediaUrl:
+      'https://www.youtube.com/watch?v=B4_T6-rc35Y&ab_channel=Don%27tMemorise',
+    thumbUrl: 'https://i3.ytimg.com/vi/lx9qeRLUYs8/maxresdefault.jpg',
+    description: 'Nature description',
+    title: 'Nature in 4K',
   },
 ];
